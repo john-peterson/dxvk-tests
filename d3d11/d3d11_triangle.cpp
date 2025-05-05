@@ -32,12 +32,15 @@ struct PsConstants {
 };
 
 const std::string g_vertexShaderCode =
-  "cbuffer vs_cb : register(b0) {\n"
-  "  float2 v_offset;\n"
-  "  float2 v_scale;\n"
-  "};\n"
-  "float4 main(float4 v_pos : IN_POSITION) : SV_POSITION {\n"
-  "  return float4(v_offset + v_pos * v_scale, 0.0f, 1.0f);\n"
+  "static const float4 pos[6] = {\n"
+  "  float4(-1.0f, 1.000019f, 0.09999f, 1.0f),\n"
+  "  float4( 1.00000f, 1.000019f, 0.09999f, 1.0f),\n"
+  "  float4(-0.999969f, -0.999985f, 0.09999f, 1.0f),\n"
+  "  float4(-0.999969f, -0.999985f, 0.09999f, 1.0f),\n"
+  "  float4( 1.00000f, 1.000019f, 0.09999f, 1.0f),\n"
+  "  float4( 1.000031f, -0.999985f, 0.09999f, 1.0f)};\n"
+  "float4 main(in uint v_id : SV_VERTEXID) : SV_POSITION {\n"
+  "  return pos[v_id];\n"
   "}\n";
 
 const std::string g_pixelShaderCode =
@@ -116,19 +119,17 @@ public:
 
     m_device->GetImmediateContext1(&m_context);
 
-    DXGI_SWAP_CHAIN_DESC1 swapDesc;
-    swapDesc.Width          = m_windowSizeW;
-    swapDesc.Height         = m_windowSizeH;
+    DXGI_SWAP_CHAIN_DESC1 swapDesc = { };
+    swapDesc.Width          = 2560;
+    swapDesc.Height         = 1440;
     swapDesc.Format         = DXGI_FORMAT_R10G10B10A2_UNORM;
     swapDesc.Stereo         = FALSE;
     swapDesc.SampleDesc     = { 1, 0 };
     swapDesc.BufferUsage    = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapDesc.BufferCount    = 3;
-    swapDesc.Scaling        = DXGI_SCALING_NONE;
-    swapDesc.SwapEffect     = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    swapDesc.Scaling        = DXGI_SCALING_STRETCH;
+    swapDesc.SwapEffect     = DXGI_SWAP_EFFECT_DISCARD;
     swapDesc.AlphaMode      = DXGI_ALPHA_MODE_UNSPECIFIED;
-    swapDesc.Flags          = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
-                            | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsDesc;
     fsDesc.RefreshRate      = { 0, 0 };
@@ -145,13 +146,6 @@ public:
 
     if (FAILED(swapChain->QueryInterface(IID_PPV_ARGS(&m_swapChain)))) {
       std::cerr << "Failed to query DXGI swap chain interface" << std::endl;
-      return;
-    }
-
-    m_latencyEvent = m_swapChain->GetFrameLatencyWaitableObject();
-
-    if (!m_latencyEvent) {
-      std::cerr << "Failed to query DXGI frame latency event" << std::endl;
       return;
     }
 
@@ -302,49 +296,6 @@ public:
     setBrightness(400.0f);
     drawTriangle(0.0f, 0.0f, 0);
 
-    setBrightness(200.0f);
-    drawTriangle(1.0f, 0.0f, 3);
-    drawTriangle(-1.0f, 0.0f, 3);
-    drawTriangle(0.0f, -1.0f, 3);
-
-    setBrightness(100.0f);
-    drawTriangle(-2.0f, 1.0f, 3);
-    drawTriangle(-1.0f, 1.0f, 0);
-    drawTriangle(0.0f, 1.0f, 3);
-    drawTriangle(1.0f, 1.0f, 0);
-    drawTriangle(2.0f, 1.0f, 3);
-
-    setBrightness(80.0f);
-    drawTriangle(-4.0f, 1.0f, 3);
-    drawTriangle(-3.0f, 1.0f, 0);
-    drawTriangle(-3.0f, 0.0f, 3);
-    drawTriangle(-2.0f, 0.0f, 0);
-    drawTriangle(-2.0f, -1.0f, 3);
-    drawTriangle(-1.0f, -1.0f, 0);
-    drawTriangle(-1.0f, -2.0f, 3);
-    drawTriangle(0.0f, -2.0f, 0);
-    drawTriangle(0.0f, -3.0f, 3);
-    drawTriangle(1.0f, -2.0f, 3);
-    drawTriangle(4.0f, 1.0f, 3);
-    drawTriangle(3.0f, 1.0f, 0);
-    drawTriangle(3.0f, 0.0f, 3);
-    drawTriangle(2.0f, 0.0f, 0);
-    drawTriangle(2.0f, -1.0f, 3);
-    drawTriangle(1.0f, -1.0f, 0);
-
-    setBrightness(60.0f);
-    drawTriangle(-5.0f, 2.0f, 3);
-    drawTriangle(-4.0f, 2.0f, 0);
-    drawTriangle(-3.0f, 2.0f, 3);
-    drawTriangle(-2.0f, 2.0f, 0);
-    drawTriangle(-1.0f, 2.0f, 3);
-    drawTriangle(0.0f, 2.0f, 0);
-    drawTriangle(1.0f, 2.0f, 3);
-    drawTriangle(2.0f, 2.0f, 0);
-    drawTriangle(3.0f, 2.0f, 3);
-    drawTriangle(4.0f, 2.0f, 0);
-    drawTriangle(5.0f, 2.0f, 3);
-
     if (!endFrame())
       return false;
 
@@ -380,13 +331,11 @@ public:
     memcpy(sr.pData, &constants, sizeof(constants));
     m_context->Unmap(m_cbVs.ptr(), 0);
 
-    m_context->DrawIndexedInstanced(3, 1, index, 0, 0);
+    m_context->Draw(6, 0);
   }
 
 
   bool beginFrame() {
-    WaitForSingleObject(m_latencyEvent, INFINITE);
-
     // Make sure we can actually render to the window
     RECT windowRect = { 0, 0, 1024, 600 };
     GetClientRect(m_window, &windowRect);
@@ -400,11 +349,11 @@ public:
       DXGI_SWAP_CHAIN_DESC1 desc;
       m_swapChain->GetDesc1(&desc);
 
-      if (FAILED(m_swapChain->ResizeBuffers(desc.BufferCount,
-          newWindowSizeW, newWindowSizeH, desc.Format, desc.Flags))) {
-        std::cerr << "Failed to resize back buffers" << std::endl;
-        return false;
-      }
+      // if (FAILED(m_swapChain->ResizeBuffers(desc.BufferCount,
+      //     newWindowSizeW, newWindowSizeH, desc.Format, desc.Flags))) {
+      //   std::cerr << "Failed to resize back buffers" << std::endl;
+      //   return false;
+      // }
 
       m_windowSizeW = newWindowSizeW;
       m_windowSizeH = newWindowSizeH;
@@ -429,8 +378,8 @@ public:
     }
 
     // Set up render state
-    FLOAT color_sdr[4] = { 0.61f, 0.61f, 0.61f, 1.0f };
-    FLOAT color_hdr[4] = { 0.42f, 0.42f, 0.42f, 1.0f };
+    FLOAT color_sdr[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
+    FLOAT color_hdr[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
     m_context->OMSetRenderTargets(1, &rtv, nullptr);
     m_context->ClearRenderTargetView(rtv.ptr(), m_isHdr ? color_hdr : color_sdr);
 
@@ -443,8 +392,8 @@ public:
     D3D11_VIEWPORT viewport;
     viewport.TopLeftX     = 0.0f;
     viewport.TopLeftY     = 0.0f;
-    viewport.Width        = float(m_windowSizeW);
-    viewport.Height       = float(m_windowSizeH);
+    viewport.Width        = float(2560);
+    viewport.Height       = float(1440);
     viewport.MinDepth     = 0.0f;
     viewport.MaxDepth     = 1.0f;
     m_context->RSSetViewports(1, &viewport);
@@ -520,8 +469,6 @@ private:
 
   LARGE_INTEGER                 m_qpcLastUpdate = { };
   LARGE_INTEGER                 m_qpcFrequency  = { };
-
-  HANDLE                        m_latencyEvent = nullptr;
 
   uint32_t                      m_frameCount = 0;
   
