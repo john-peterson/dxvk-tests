@@ -15,6 +15,7 @@ compiler_args = [
   # clang
   '-Wno-unused-private-field',
   '-Wno-microsoft-exception-spec',
+  '-Wfatal-errors',
   # windows
   '-DNOMINMAX',
   '-D_WIN32_WINNT=0xa00',

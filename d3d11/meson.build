@@ -5,6 +5,7 @@ args = {
   'install': true
 }
 
+executable('d3d11info', files('d3d11_info.cpp'), kwargs: args)
 executable('d3d11-compute', files('d3d11_compute.cpp'), kwargs: args)
 executable('d3d11-formats', files('d3d11_formats.cpp'), kwargs: args)
 executable('d3d11-on-12', files('d3d11_on_12.cpp'), kwargs: args)
